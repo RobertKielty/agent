@@ -61,14 +61,14 @@ if (console.debug) {
 
 function createWindow() {
     logger.info('[Electron Main] Create new window.');
-    let packagesDir;
+    let rootDir;
     if (isDev) {
-        packagesDir = path.join(path.join(process.cwd(), process.argv[1]), '../../../../tmp');
+        rootDir = path.join(path.join(process.cwd(), process.argv[1]), '../../../../tmp');
     } else {
-        packagesDir = path.dirname(app.getAppPath());
+        rootDir = path.dirname(app.getAppPath());
     }
 
-    logger.info(`[Electron Main] packagesDir: ${packagesDir}`);
+    logger.info(`[Electron Main] rootDir: ${rootDir}`);
 
     // Create the browser window.
     win = new BrowserWindow({
@@ -83,12 +83,12 @@ function createWindow() {
     win.setMenuBarVisibility(false);
     win.maximize();
     uhkHidDeviceService = new UhkHidDevice(logger);
-    uhkBlhost = new UhkBlhost(logger, packagesDir);
-    uhkOperations = new UhkOperations(logger, uhkBlhost, uhkHidDeviceService, packagesDir);
-    deviceService = new DeviceService(logger, win, uhkHidDeviceService, uhkOperations);
+    uhkBlhost = new UhkBlhost(logger, rootDir);
+    uhkOperations = new UhkOperations(logger, uhkBlhost, uhkHidDeviceService, rootDir);
+    sudoService = new SudoService(logger, rootDir);
+    deviceService = new DeviceService(logger, win, uhkHidDeviceService, uhkOperations, sudoService, uhkBlhost);
     appUpdateService = new AppUpdateService(logger, win, app);
     appService = new AppService(logger, win, deviceService, options, uhkHidDeviceService);
-    sudoService = new SudoService(logger);
     // and load the index.html of the app.
 
     win.loadURL(url.format({

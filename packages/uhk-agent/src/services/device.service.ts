@@ -7,6 +7,7 @@ import {
     getTransferBuffers,
     snooze,
     SystemPropertyIds,
+    UhkBlhost,
     UhkHidDevice,
     UhkOperations,
     UsbCommand
@@ -24,6 +25,7 @@ import 'rxjs/add/operator/distinctUntilChanged';
 
 import { saveTmpFirmware } from '../util/save-extract-firmware';
 import { TmpFirmware } from '../models/tmp-firmware';
+import { SudoService } from './sudo.service';
 
 /**
  * IpcMain pair of the UHK Communication
@@ -39,7 +41,9 @@ export class DeviceService {
     constructor(private logService: LogService,
                 private win: Electron.BrowserWindow,
                 private device: UhkHidDevice,
-                private operations: UhkOperations) {
+                private operations: UhkOperations,
+                private sudoService: SudoService,
+                private blhost: UhkBlhost) {
         this.pollUhkDevice();
         ipcMain.on(IpcEvents.device.saveUserConfiguration, this.saveUserConfiguration.bind(this));
         ipcMain.on(IpcEvents.device.loadConfigurations, this.loadConfigurations.bind(this));
@@ -255,6 +259,22 @@ export class DeviceService {
 
         this.pollTimer$.unsubscribe();
         this.pollTimer$ = null;
+    }
 
+    private async setupLibUsbDriver(): Promise<void> {
+        try {
+            await this.checkLibUsbDriver();
+        } catch (error) {
+            await this.sudoService.setPrivilegOnWindows();
+            await this.checkLibUsbDriver();
+        }
+    }
+
+    private async checkLibUsbDriver(): Promise<void> {
+        await this.blhost.runBlhostCommand([
+            `--usb 0x1d50,0x${Constants.PRODUCT_ID.toString(16)}`,
+            'get-property',
+            '1'
+        ]);
     }
 }
